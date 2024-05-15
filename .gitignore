@@ -1,0 +1,6 @@
+.vscode
+/venv/
+/citation_csv/
+/source/
+*/__pychache__/*
+*.pyc
