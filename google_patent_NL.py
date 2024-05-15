@@ -126,12 +126,22 @@ def get_citations(df):
                 claim_text.strip().replace(";", " ").replace("\n", " ").replace("\t", " ")
         total_claims = len(claim_id.find_all('claim'))
 
+        description = soup.find("description")
+        description_text = ""
+        if description:
+            for desc in description.find_all('p'):
+                parent_span_desc = desc.find(class_='notranslate style-scope patent-text')
+                if parent_span_desc:
+                    english_text_desc = ''.join([str(child) for child in parent_span_desc.children if isinstance(child, str)])
+                    description_text += english_text_desc
+                    description_text.strip().replace(";", " ").replace("\n", " ").replace("\t", " ")
+
         patent_data = {
             "publication_number": number,
             "appln_nr_original": row['appln_nr_original'],
             "patent_title": patent_title,
             "abstract": abstract,
-            "description": "",
+            "description": description_text,
             "claims": claim_text,
             "total_number_of_claims": total_claims,
             "total_cited_by": total_cited_by,
