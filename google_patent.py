@@ -1,4 +1,5 @@
 import sys
+import re
 from bs4 import BeautifulSoup
 import pandas as pd
 from selenium import webdriver
@@ -123,25 +124,38 @@ def get_citations(df, country_code='NL'):
         else:
             status = status_div.find_next('span', class_='title-text style-scope application-timeline').text.strip()
 
-        claim_id = soup.find('section', id='claims')
         claim_text = ""
-        for claim in claim_id.find_all('claim'):
-            parent_span = claim.find(class_="notranslate style-scope patent-text")
-            if parent_span:
-                english_text = ''.join([str(child) for child in parent_span.children if isinstance(child, str)])
-                claim_text += english_text
-                claim_text.strip().replace(";", " ").replace("\n", " ").replace("\t", " ")
-        total_claims = len(claim_id.find_all('claim'))
-
-        description = soup.find("description")
         description_text = ""
-        if description:
-            for desc in description.find_all('p'):
-                parent_span_desc = desc.find(class_='notranslate style-scope patent-text')
-                if parent_span_desc:
-                    english_text_desc = ''.join([str(child) for child in parent_span_desc.children if isinstance(child, str)])
-                    description_text += english_text_desc
-                    description_text.strip().replace(";", " ").replace("\n", " ").replace("\t", " ")
+        total_claims = 0
+        claim_id = soup.find('section', id='claims')
+        if country_code == 'NL':
+            for claim in claim_id.find_all('claim'):
+                parent_span = claim.find(class_="notranslate style-scope patent-text")
+                if parent_span:
+                    english_text = ''.join([str(child) for child in parent_span.children if isinstance(child, str)])
+                    claim_text += english_text
+                    claim_text.replace(";", " ").replace("\n", " ").replace("\t", " ").strip()
+            total_claims = len(claim_id.find_all('claim'))
+
+            description = soup.find("description")
+            if description:
+                for desc in description.find_all('p'):
+                    parent_span_desc = desc.find(class_='notranslate style-scope patent-text')
+                    if parent_span_desc:
+                        english_text_desc = ''.join([str(child) for child in parent_span_desc.children if isinstance(child, str)])
+                        description_text += english_text_desc
+                        description_text.replace(";", " ").replace("\n", " ").replace("\t", " ").strip()
+        elif country_code == 'US':
+            claim_text = soup.find("patent-text", {'name': 'claims'}).text.replace(";", " ").replace("\n", " ").replace("\t", " ").strip()
+            description_text = soup.find("patent-text", {'name': 'description'}).text.replace(";", " ").replace("\n", " ").replace("\t", " ").strip()
+            claim_subtitle = claim_id.find('h3')
+            if claim_subtitle:
+                claim_subtitle_text = claim_subtitle.text
+                match = re.search(r'Claims \((\d+)\)', claim_subtitle_text)  # get the number of claims
+                if match:
+                    total_claims = match.group(1)
+                else:
+                    print("No digit number found in the text")
 
         patent_data = {
             "publication_number": number,
