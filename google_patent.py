@@ -1,3 +1,4 @@
+import sys
 from bs4 import BeautifulSoup
 import pandas as pd
 from selenium import webdriver
@@ -51,7 +52,7 @@ def get_data_tables(soup, number, div_id):
         data.append(citation)
     return data
 
-def get_citations(df):
+def get_citations(df, country_code='NL'):
     """
     Returns a list of citations in the given file.
     """
@@ -67,7 +68,13 @@ def get_citations(df):
         # if index > 100:
         #     continue
         print(f"{index}/{df.shape[0]}")
-        number = f"NL{int(row['appln_nr_original'])}"
+        if country_code == 'NL':
+            original_number = row['appln_nr_original']
+            number = f"NL{int(row['appln_nr_original'])}"
+        elif country_code == 'US':
+            original_number = row['patent_num']
+            number = f"US{row['patent_num']}"
+            
         url = f"https://patents.google.com/patent/{number}/en?oq={number}"
         try:
             driver.get(url)
@@ -138,7 +145,7 @@ def get_citations(df):
 
         patent_data = {
             "publication_number": number,
-            "appln_nr_original": row['appln_nr_original'],
+            "original_number": original_number,
             "patent_title": patent_title,
             "abstract": abstract,
             "description": description_text,
@@ -203,7 +210,7 @@ def get_citations(df):
     df_non_patent_citations = pd.DataFrame(non_patent_citations)
     df_data_cited_by = pd.DataFrame(data_cited_by)
     df_patent_data = pd.DataFrame(patent_datas)
-    output_name = "all_patents"
+    output_name = f"all_patents{country_code}"
     # output_file = os.path.join(output_citations, f"{output_name}_citations.xlsx")
     # writer = pd.ExcelWriter(output_file, engine='openpyxl')
     # df_patent_citations.to_excel(writer, sheet_name='PatentCitations', index=False)
@@ -225,11 +232,24 @@ def get_citations(df):
 
 
 if __name__ == '__main__':
+    # get arguments python google_patent_NL.py NL
+    if len(sys.argv) < 2:
+        print("Please provide the country code")
+        sys.exit(1)
+
+    country_code = sys.argv[1]
+
     # Load the data
-    data = pd.read_csv('source/NL_patent_raw.csv', sep=';')
+    if country_code == 'NL':
+        data = pd.read_csv('source/NL_patent_raw.csv', sep=';')
+    elif country_code == 'US':
+        data = pd.read_csv('source/US_match_patent.csv', sep=',')
+    else:
+        print("Please provide the correct country code")
+        sys.exit(1)
 
     # Print the data
     print(data.head())
 
-    get_citations(data.head())
+    get_citations(data.head(), country_code=country_code)
 
