@@ -1,3 +1,4 @@
+import argparse
 import sys
 import re
 from bs4 import BeautifulSoup
@@ -53,7 +54,7 @@ def get_data_tables(soup, number, div_id):
         data.append(citation)
     return data
 
-def get_citations(df, country_code='NL'):
+def get_citations(df, country_code='NL', from_index=0, to_index=10):
     """
     Returns a list of citations in the given file.
     """
@@ -66,8 +67,10 @@ def get_citations(df, country_code='NL'):
 
     timeouts_data = []
     for index, row in df.iterrows():
-        # if index > 100:
-        #     continue
+        if index < from_index:
+            continue
+        if index > to_index:
+            break
         print(f"{index}/{df.shape[0]}")
         if country_code == 'NL':
             original_number = row['appln_nr_original']
@@ -93,6 +96,7 @@ def get_citations(df, country_code='NL'):
             )
         except TimeoutException:
             print('Loading took too much time!')
+            timeouts_data.append(number)
             continue
         except WebDriverException:
             print('webdriver')
@@ -106,8 +110,9 @@ def get_citations(df, country_code='NL'):
         total_patent_citations = 0
 
         patent_title = soup.find('h1', id='title').text.strip()
-        cited_by_text = soup.find('a', href='#citedBy').text
-        if cited_by_text:
+        cited_by_el = soup.find('a', href='#citedBy')
+        if cited_by_el:
+            cited_by_text = cited_by_el.text
             total_cited_by = int(cited_by_text.split('(')[1].split(')')[0])
         patent_citations_text = soup.find('a', href='#patentCitations').text
         if patent_citations_text:
@@ -244,14 +249,23 @@ def get_citations(df, country_code='NL'):
     df_data_cited_by.to_csv(os.path.join(year_folder, f"{output_name}_CitedBy.csv"), index=False, sep=';')
     df_patent_data.to_csv(os.path.join(year_folder, f"{output_name}_PatentData.csv"), index=False, sep=';')
 
+    # write timeout data in csv with the publication number to a file with header original_number
+    if timeouts_data:
+        df_timeouts = pd.DataFrame(timeouts_data, columns=['original_number'])
+        df_timeouts.to_csv(os.path.join(year_folder, f"{output_name}_Timeouts.csv"), index=False, sep=';')
+
 
 if __name__ == '__main__':
     # get arguments python google_patent_NL.py NL
-    if len(sys.argv) < 2:
-        print("Please provide the country code")
-        sys.exit(1)
-
-    country_code = sys.argv[1]
+    # use import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--country_code", help="Country code of the patent")
+    parser.add_argument("--from_index", help="From index to get the data", type=int, default=0)
+    parser.add_argument("--to_index", help="To index to get the data", type=int, default=10)
+    args = parser.parse_args()
+    country_code = args.country_code
+    from_index = args.from_index
+    to_index = args.to_index
 
     # Load the data
     if country_code == 'NL':
@@ -262,8 +276,4 @@ if __name__ == '__main__':
         print("Please provide the correct country code")
         sys.exit(1)
 
-    # Print the data
-    print(data.head())
-
-    get_citations(data.head(), country_code=country_code)
-
+    get_citations(data, country_code=country_code, from_index=from_index, to_index=to_index)

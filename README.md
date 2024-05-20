@@ -6,9 +6,9 @@ Put your CSV files in source folder:
 
 Run the following command:
 ```
-python google_patent.py NL
+python google_patent.py --country_code NL --from_index 5 --to_index 10
 ```
 or
 ```
-python google_patent.py US
+python google_patent.py --country_code US --from_index 5 --to_index 10
 ```
