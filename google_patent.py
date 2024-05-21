@@ -58,7 +58,10 @@ def get_citations(df, country_code='NL', from_index=0, to_index=10):
     """
     Returns a list of citations in the given file.
     """
-    driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()))
+    # add chrome options for headless true
+    chrome_options = webdriver.ChromeOptions()
+    chrome_options.headless = True
+    driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=chrome_options)
 
     patent_datas = []
     patent_citations = []
