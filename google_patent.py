@@ -4,6 +4,7 @@ import re
 from bs4 import BeautifulSoup
 import pandas as pd
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service as ChromeService
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.keys import Keys
@@ -59,8 +60,10 @@ def get_citations(df, country_code='NL', from_index=0, to_index=10):
     Returns a list of citations in the given file.
     """
     # add chrome options for headless true
-    chrome_options = webdriver.ChromeOptions()
-    chrome_options.headless = True
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")  # Run Chrome in headless mode
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--no-sandbox")
     driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=chrome_options)
 
     patent_datas = []
