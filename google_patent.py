@@ -20,7 +20,8 @@ from database import create_tables, insert_to_patent_datas, insert_to_patent_cit
                      insert_to_non_patent_citations, insert_to_data_cited_by
 
 
-home = os.getcwd()
+# get abs path
+home = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 outputs = os.path.join(home, 'output_excel')
 output_citations = os.path.join(home, 'output_citations')
 make_dir_if_not_exists(output_citations)
@@ -231,9 +232,12 @@ if __name__ == '__main__':
 
     # Load the data
     if country_code == 'NL':
-        data = pd.read_csv('source/NL_patent_raw.csv', sep=';')
+        # get the absolute path
+        path = os.path.abspath('source/NL_patent_raw.csv')
+        data = pd.read_csv(path, sep=';')
     elif country_code == 'US':
-        data = pd.read_csv('source/US_match_patent.csv', sep=',')
+        path = os.path.abspath('source/NL_patent_raw.csv')
+        data = pd.read_csv(path, sep=',')
     else:
         print("Please provide the correct country code")
         sys.exit(1)
