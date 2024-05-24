@@ -15,7 +15,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException, WebDriverException
 from selenium.webdriver.support import expected_conditions as EC
 import os
-from utils.utils import make_dir_if_not_exists
+from utils.utils import make_dir_if_not_exists, send_email
 from database import create_tables, insert_to_patent_datas, insert_to_patent_citations, \
                      insert_to_non_patent_citations, insert_to_data_cited_by
 
@@ -61,8 +61,6 @@ def get_data_tables(soup, number, div_id):
 
 
 def get_citation_page_source(driver, publication_number):
-    timeouts_data = []
-
     url = f"https://patents.google.com/patent/{publication_number}/en?oq={publication_number}"
 
     max_retries = 3
@@ -71,23 +69,16 @@ def get_citation_page_source(driver, publication_number):
     for attempt in range(max_retries):
         try:
             driver.get(url)
+            WebDriverWait(driver, 5).until(
+                EC.visibility_of_element_located((By.CLASS_NAME, "footer"))
+            )
             break
         except WebDriverException as e:
             print(f"Attempt {attempt + 1} failed with error: {e}")
             if attempt < max_retries - 1:
                 time.sleep(retry_delay)
             else:
-                raise
-    try:
-        WebDriverWait(driver, 5).until(
-            EC.visibility_of_element_located((By.CLASS_NAME, "footer"))
-        )
-    except TimeoutException:
-        print('Loading took too much time!')
-        timeouts_data.append(publication_number)
-    except WebDriverException:
-        print('webdriver')
-        timeouts_data.append(publication_number)
+                raise e
 
     return driver.page_source
 
@@ -270,6 +261,12 @@ if __name__ == '__main__':
             continue
         try:
             html = get_citation_page_source(driver, publication_number)
+        except WebDriverException as e:
+            print(e)
+            print(f"Error in getting source for {publication_number}")
+            send_email("thawwafi@gmail.com", "Error in getting source", f"Error in getting source for {publication_number}")
+            break
+
         except Exception as e:
             print(e)
             print(f"Error in getting source for {publication_number}")
