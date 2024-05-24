@@ -2,6 +2,7 @@ import argparse
 import sqlite3
 import sys
 import re
+import time
 from bs4 import BeautifulSoup
 import pandas as pd
 from selenium import webdriver
@@ -63,15 +64,20 @@ def get_citation_page_source(driver, publication_number):
     timeouts_data = []
 
     url = f"https://patents.google.com/patent/{publication_number}/en?oq={publication_number}"
-    print(url)
-    try:
-        driver.get(url)
-    except TimeoutException:
-        print('timeout')
-        timeouts_data.append(publication_number)
-    except WebDriverException:
-        print('webdriver')
-        timeouts_data.append(publication_number)
+
+    max_retries = 3
+    retry_delay = 5  # seconds
+
+    for attempt in range(max_retries):
+        try:
+            driver.get(url)
+            break
+        except WebDriverException as e:
+            print(f"Attempt {attempt + 1} failed with error: {e}")
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay)
+            else:
+                raise
     try:
         WebDriverWait(driver, 5).until(
             EC.visibility_of_element_located((By.CLASS_NAME, "footer"))
@@ -245,6 +251,7 @@ if __name__ == '__main__':
     chrome_options.add_argument("--headless")  # Run Chrome in headless mode
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
     driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=chrome_options)
 
     for index, row in data.iterrows():
