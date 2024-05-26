@@ -242,6 +242,14 @@ if __name__ == '__main__':
         print("Please provide the correct country code")
         sys.exit(1)
 
+    # filter data with column appln_nr_original unique values, and remove NaN values or empty strings
+    data = data.drop_duplicates(subset=['appln_nr_original'])
+    print(data.shape[0])
+    data = data.dropna(subset=['appln_nr_original'])
+    print(data.shape[0])
+    data = data[data['appln_nr_original'] != '']
+    print(data.shape[0])
+
     chrome_options = Options()
     chrome_options.add_argument("--headless")  # Run Chrome in headless mode
     chrome_options.add_argument("--disable-gpu")
