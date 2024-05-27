@@ -235,7 +235,7 @@ if __name__ == '__main__':
         conn = sqlite3.connect('patent_data.db')
         
     elif country_code == 'US':
-        path = os.path.abspath('source/NL_patent_raw.csv')
+        path = os.path.abspath('source/US_match_patent.csv')
         data = pd.read_csv(path, sep=',')
 
         conn = sqlite3.connect('patent_data_US.db')
@@ -246,12 +246,14 @@ if __name__ == '__main__':
     create_tables(conn)
 
     # filter data with column appln_nr_original unique values, and remove NaN values or empty strings
-    data = data.drop_duplicates(subset=['appln_nr_original'])
-    print(data.shape[0])
-    data = data.dropna(subset=['appln_nr_original'])
-    print(data.shape[0])
-    data = data[data['appln_nr_original'] != '']
-    print(data.shape[0])
+    if country_code == 'NL':
+        data = data.drop_duplicates(subset=['appln_nr_original'])
+        data = data.dropna(subset=['appln_nr_original'])
+        data = data[data['appln_nr_original'] != '']
+    elif country_code == 'US':
+        data = data.drop_duplicates(subset=['patent_num'])
+        data = data.dropna(subset=['patent_num'])
+        data = data[data['patent_num'] != '']
 
     chrome_options = Options()
     chrome_options.add_argument("--headless")  # Run Chrome in headless mode
