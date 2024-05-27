@@ -226,21 +226,24 @@ if __name__ == '__main__':
     from_index = args.from_index
     to_index = args.to_index
 
-    # Initialize the database
-    conn = sqlite3.connect('patent_data.db')
-    create_tables(conn)
-
     # Load the data
     if country_code == 'NL':
         # get the absolute path
         path = os.path.abspath('source/NL_patent_raw.csv')
         data = pd.read_csv(path, sep=';')
+
+        conn = sqlite3.connect('patent_data.db')
+        
     elif country_code == 'US':
         path = os.path.abspath('source/NL_patent_raw.csv')
         data = pd.read_csv(path, sep=',')
+
+        conn = sqlite3.connect('patent_data_US.db')
     else:
         print("Please provide the correct country code")
         sys.exit(1)
+
+    create_tables(conn)
 
     # filter data with column appln_nr_original unique values, and remove NaN values or empty strings
     data = data.drop_duplicates(subset=['appln_nr_original'])

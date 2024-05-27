@@ -1,16 +1,30 @@
 #!/bin/bash
 
-# Define the path to your Python script
-python_script="/home/ubuntu/google-patent-scraper/google_patent.py"
+# Define the name of the script
+script_name="google_patent.py"
 
-# Define the path to your log file
-log_file="/home/ubuntu/google-patent-scraper/output.log"
+# Define the log files for NL and US
+log_file_NL="/home/ubuntu/google-patent-scraper/output_NL.log"
+log_file_US="/home/ubuntu/google-patent-scraper/output_US.log"
 
-# Check if another instance of the script is already running
-if pgrep -f "$python_script" > /dev/null; then
-    echo "Another instance of the script is already running. Exiting."
+# Check if the script with the NL country code is already running
+if pgrep -f "$script_name --country_code NL" > /dev/null; then
+    echo "Another instance of the script with country code NL is already running. Exiting."
     exit 1
 fi
 
-# Run the Python script with nohup
-nohup /home/ubuntu/google-patent-scraper/venv/bin/python -u "$python_script" --country_code NL > "$log_file" 2>&1 &
+# Check if the script with the US country code is already running
+if pgrep -f "$script_name --country_code US" > /dev/null; then
+    echo "Another instance of the script with country code US is already running. Exiting."
+    exit 1
+fi
+
+# Change directory to google-patent-scraper
+cd /home/ubuntu/google-patent-scraper/ || exit
+
+# Activate virtual environment
+source venv/bin/activate
+
+# Run the Python script with nohup for NL and US
+nohup python -u google_patent.py --country_code NL > "$log_file_NL" 2>&1 &
+nohup python -u google_patent.py --country_code US > "$log_file_US" 2>&1 &
