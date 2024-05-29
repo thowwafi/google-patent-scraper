@@ -290,7 +290,7 @@ if __name__ == '__main__':
             print(e)
             print(f"Error in getting source for {publication_number}")
             send_email("thawwafi@gmail.com", "Error in getting source", f"Error in getting source for {publication_number}")
-            break
+            continue
 
         except Exception as e:
             print(e)
