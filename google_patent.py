@@ -255,6 +255,16 @@ if __name__ == '__main__':
         data = data.dropna(subset=['patent_num'])
         data = data[data['patent_num'] != '']
 
+    cursor = conn.cursor()
+    # Execute the SQL query
+    cursor.execute("SELECT publication_number FROM patent_datas")
+
+    # Fetch all rows from the last executed SQL statement
+    results = cursor.fetchall()
+
+    # Create a list of publication numbers
+    existing_publication_numbers = [row[0] for row in results]
+
     chrome_options = Options()
     chrome_options.add_argument("--headless")  # Run Chrome in headless mode
     chrome_options.add_argument("--disable-gpu")
@@ -270,9 +280,7 @@ if __name__ == '__main__':
             original_number = row['patent_num']
             publication_number = f"US{row['patent_num']}"
         # check if publication number exists in the database
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM patent_datas WHERE publication_number=?", (publication_number,))
-        result = cursor.fetchone()
+        result = publication_number in existing_publication_numbers
         if result:
             print(f"{index}/{data.shape[0]}", f"{publication_number}, existed")
             continue
