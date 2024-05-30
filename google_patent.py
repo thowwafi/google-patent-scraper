@@ -229,6 +229,7 @@ if __name__ == '__main__':
     # Load the data
     if country_code == 'NL':
         # get the absolute path
+        # path = os.path.abspath('source/test.csv')
         path = os.path.abspath('source/NL_patent_raw.csv')
         data = pd.read_csv(path, sep=';')
 
@@ -250,10 +251,15 @@ if __name__ == '__main__':
         data = data.drop_duplicates(subset=['appln_nr_original'])
         data = data.dropna(subset=['appln_nr_original'])
         data = data[data['appln_nr_original'] != '']
+        data['appln_nr_original'] = pd.to_numeric(data['appln_nr_original'], errors='coerce')
+        data = data.dropna(subset=['appln_nr_original'])
+        data['appln_nr_original'] = data['appln_nr_original'].astype(int)
     elif country_code == 'US':
         data = data.drop_duplicates(subset=['patent_num'])
         data = data.dropna(subset=['patent_num'])
         data = data[data['patent_num'] != '']
+
+    data = data.reset_index(drop=True)
 
     cursor = conn.cursor()
     # Execute the SQL query
