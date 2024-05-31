@@ -9,24 +9,25 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service as ChromeService
 from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException, WebDriverException
 from selenium.webdriver.support import expected_conditions as EC
 import os
+from multiprocessing import Pool, cpu_count, Semaphore, Manager
 from utils.utils import make_dir_if_not_exists, send_email
 from database import create_tables, insert_to_patent_datas, insert_to_patent_citations, \
                      insert_to_non_patent_citations, insert_to_data_cited_by
 
+# Initialize semaphore globally for process synchronization
+semaphore = Semaphore(4)
 
-# get abs path
+# Get absolute paths
 home = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 outputs = os.path.join(home, 'output_excel')
 output_citations = os.path.join(home, 'output_citations')
 make_dir_if_not_exists(output_citations)
 citation_csv = os.path.join(home, 'citation_csv')
-
 
 def get_data_tables(soup, number, div_id):
     h3_pc = soup.find('h3', id=div_id)
@@ -60,13 +61,10 @@ def get_data_tables(soup, number, div_id):
         data.append(citation)
     return data
 
-
 def get_citation_page_source(driver, publication_number):
     url = f"https://patents.google.com/patent/{publication_number}/en?oq={publication_number}"
-
     max_retries = 3
     retry_delay = 5  # seconds
-
     for attempt in range(max_retries):
         try:
             driver.get(url)
@@ -80,9 +78,7 @@ def get_citation_page_source(driver, publication_number):
                 time.sleep(retry_delay)
             else:
                 raise e
-
     return driver.page_source
-
 
 def get_a_citation_data(html, publication_number, original_number, country_code):
     patent_citations = []
@@ -213,14 +209,55 @@ def get_a_citation_data(html, publication_number, original_number, country_code)
     
     return patent_data, patent_citations, non_patent_citations, data_cited_by
 
+def process_patent(row, country_code, existing_publication_numbers):
+    with semaphore:
+        if country_code == 'NL':
+            original_number = row['appln_nr_original']
+            publication_number = f"NL{int(row['appln_nr_original'])}"
+        elif country_code == 'US':
+            original_number = row['patent_num']
+            publication_number = f"US{row['patent_num']}"
+        else:
+            return
+
+        if publication_number in existing_publication_numbers:
+            print(f"{publication_number} already exists in the database")
+            return
+
+        try:
+            # Create a new SQLite connection and WebDriver instance within each worker process
+            conn = sqlite3.connect(f'patent_data_{country_code}.db')
+            chrome_options = Options()
+            chrome_options.add_argument("--headless")
+            chrome_options.add_argument("--disable-gpu")
+            chrome_options.add_argument("--no-sandbox")
+            chrome_options.add_argument("--disable-dev-shm-usage")
+            driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=chrome_options)
+
+            html = get_citation_page_source(driver, publication_number)
+            patent_data, patent_citations, non_patent_citations, data_cited_by = get_a_citation_data(html, publication_number, original_number, country_code)
+            
+            insert_to_patent_datas(conn, patent_data)
+            for citation in patent_citations:
+                insert_to_patent_citations(conn, citation)
+            for citation in non_patent_citations:
+                insert_to_non_patent_citations(conn, citation)
+            for citation in data_cited_by:
+                insert_to_data_cited_by(conn, citation)
+
+            print(f"{publication_number} processed successfully")
+
+            # Close the WebDriver and SQLite connection
+            driver.quit()
+            conn.close()
+        except Exception as e:
+            print(f"Error processing {publication_number}: {e}")
 
 if __name__ == '__main__':
-    # get arguments python google_patent_NL.py NL
-    # use import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--country_code", help="Country code of the patent")
-    parser.add_argument("--from_index", help="From index to get the data", type=int, default=0)
-    parser.add_argument("--to_index", help="To index to get the data", type=int, default=10)
+    parser.add_argument("--from_index", help="From index to get the data", type=int, default=130)
+    parser.add_argument("--to_index", help="To index to get the data", type=int, default=140)
     args = parser.parse_args()
     country_code = args.country_code
     from_index = args.from_index
@@ -228,25 +265,20 @@ if __name__ == '__main__':
 
     # Load the data
     if country_code == 'NL':
-        # get the absolute path
-        # path = os.path.abspath('source/test.csv')
         path = os.path.abspath('source/NL_patent_raw.csv')
         data = pd.read_csv(path, sep=';')
-
-        conn = sqlite3.connect('patent_data.db')
-        
     elif country_code == 'US':
         path = os.path.abspath('source/US_match_patent.csv')
         data = pd.read_csv(path, sep=',')
-
-        conn = sqlite3.connect('patent_data_US.db')
     else:
         print("Please provide the correct country code")
         sys.exit(1)
 
+    # Connect to the database and create tables
+    conn = sqlite3.connect(f'patent_data_{country_code}.db')
     create_tables(conn)
 
-    # filter data with column appln_nr_original unique values, and remove NaN values or empty strings
+    # Filter data and remove duplicates and NaN values
     if country_code == 'NL':
         data = data.drop_duplicates(subset=['appln_nr_original'])
         data = data.dropna(subset=['appln_nr_original'])
@@ -261,62 +293,20 @@ if __name__ == '__main__':
 
     data = data.reset_index(drop=True)
 
+    # Retrieve existing publication numbers from the database
     cursor = conn.cursor()
-    # Execute the SQL query
     cursor.execute("SELECT publication_number FROM patent_datas")
+    existing_publication_numbers = [row[0] for row in cursor.fetchall()]
 
-    # Fetch all rows from the last executed SQL statement
-    results = cursor.fetchall()
+    # Use Manager to share the existing_publication_numbers list between processes
+    manager = Manager()
+    existing_publication_numbers = manager.list(existing_publication_numbers)
 
-    # Create a list of publication numbers
-    existing_publication_numbers = [row[0] for row in results]
+    # Close the initial database connection
+    conn.close()
 
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")  # Run Chrome in headless mode
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=chrome_options)
-
-    for index, row in data.iterrows():
-        if country_code == 'NL':
-            original_number = row['appln_nr_original']
-            publication_number = f"NL{int(row['appln_nr_original'])}"
-        elif country_code == 'US':
-            original_number = row['patent_num']
-            publication_number = f"US{row['patent_num']}"
-        # check if publication number exists in the database
-        result = publication_number in existing_publication_numbers
-        if result:
-            print(f"{index}/{data.shape[0]}", f"{publication_number}, existed")
-            continue
-        try:
-            html = get_citation_page_source(driver, publication_number)
-        except WebDriverException as e:
-            print(e)
-            print(f"Error in getting source for {publication_number}")
-            continue
-
-        except Exception as e:
-            print(e)
-            print(f"Error in getting source for {publication_number}")
-            continue
-        try:
-            patent_data, patent_citations, non_patent_citations, data_cited_by = get_a_citation_data(html, publication_number, original_number, country_code)
-        except Exception as e:
-            print(e)
-            print(f"Error in getting data for {publication_number}")
-            continue
-
-        try:
-            insert_to_patent_datas(conn, patent_data)
-            for citation in patent_citations:
-                insert_to_patent_citations(conn, citation)
-            for citation in non_patent_citations:
-                insert_to_non_patent_citations(conn, citation)
-            for citation in data_cited_by:
-                insert_to_data_cited_by(conn, citation)
-        except Exception as e:
-            print(e)
-            print(f"Error in inserting data for {publication_number}")
-        print(f"{index}/{data.shape[0]}", f"{publication_number}, success")
+    with Pool(cpu_count()) as pool:
+        pool.starmap(
+            process_patent,
+            [(row, country_code, existing_publication_numbers) for index, row in data.iterrows() if from_index <= index < to_index]
+        )
