@@ -294,6 +294,7 @@ if __name__ == '__main__':
         elif country_code == 'US':
             original_number = row['patent_num']
             publication_number = f"US{row['patent_num']}"
+        print(f"{index}/{data.shape[0]}", f"{publication_number}, running...")
         # check if publication number exists in the database
         result = publication_number in existing_publication_numbers
         if result:
