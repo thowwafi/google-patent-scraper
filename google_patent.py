@@ -304,7 +304,6 @@ if __name__ == '__main__':
         try:
             html, is_404 = get_citation_page_source(driver, publication_number)
         except WebDriverException as e:
-            print(e)
             print(f"Error in getting source for {publication_number}")
             continue
         except Exception as e:

@@ -1,4 +1,5 @@
 import argparse
+import contextlib
 import sqlite3
 import sys
 import re
@@ -65,9 +66,14 @@ def get_citation_page_source(driver, publication_number):
     url = f"https://patents.google.com/patent/{publication_number}/en?oq={publication_number}"
     max_retries = 3
     retry_delay = 5  # seconds
+    is_404 = False
     for attempt in range(max_retries):
         try:
             driver.get(url)
+            with contextlib.suppress(TimeoutException):
+                is_404 = WebDriverWait(driver, 5).until(EC.title_contains("404"))
+                if is_404:
+                    return "", is_404
             WebDriverWait(driver, 5).until(
                 EC.visibility_of_element_located((By.CLASS_NAME, "footer"))
             )
@@ -78,7 +84,7 @@ def get_citation_page_source(driver, publication_number):
                 time.sleep(retry_delay)
             else:
                 raise e
-    return driver.page_source
+    return driver.page_source, is_404
 
 def get_a_citation_data(html, publication_number, original_number, country_code):
     patent_citations = []
@@ -209,7 +215,8 @@ def get_a_citation_data(html, publication_number, original_number, country_code)
     
     return patent_data, patent_citations, non_patent_citations, data_cited_by
 
-def process_patent(row, country_code, existing_publication_numbers):
+def process_patent(index, total_data, row, country_code, existing_publication_numbers):
+    # sourcery skip: extract-duplicate-method, switch
     with semaphore:
         if country_code == 'NL':
             original_number = row['appln_nr_original']
@@ -221,12 +228,12 @@ def process_patent(row, country_code, existing_publication_numbers):
             return
 
         if publication_number in existing_publication_numbers:
-            print(f"{publication_number} already exists in the database")
+            print(f"{index}/{total_data} {publication_number} already exists in the database")
             return
 
         try:
             # Create a new SQLite connection and WebDriver instance within each worker process
-            conn = sqlite3.connect(f'patent_data_{country_code}.db')
+            conn = sqlite3.connect('patent_data.db')
             chrome_options = Options()
             chrome_options.add_argument("--headless")
             chrome_options.add_argument("--disable-gpu")
@@ -234,7 +241,12 @@ def process_patent(row, country_code, existing_publication_numbers):
             chrome_options.add_argument("--disable-dev-shm-usage")
             driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=chrome_options)
 
-            html = get_citation_page_source(driver, publication_number)
+            html, is_404 = get_citation_page_source(driver, publication_number)
+            if is_404:
+                print(f"{index}/{total_data} {publication_number} is a 404 page")
+                driver.quit()
+                conn.close()
+                return
             patent_data, patent_citations, non_patent_citations, data_cited_by = get_a_citation_data(html, publication_number, original_number, country_code)
             
             insert_to_patent_datas(conn, patent_data)
@@ -245,13 +257,13 @@ def process_patent(row, country_code, existing_publication_numbers):
             for citation in data_cited_by:
                 insert_to_data_cited_by(conn, citation)
 
-            print(f"{publication_number} processed successfully")
+            print(f"{index}/{total_data} {publication_number} processed successfully")
 
             # Close the WebDriver and SQLite connection
             driver.quit()
             conn.close()
         except Exception as e:
-            print(f"Error processing {publication_number}: {e}")
+            print(f"{index}/{total_data} Error processing {publication_number}: {e}")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -292,6 +304,7 @@ if __name__ == '__main__':
         data = data[data['patent_num'] != '']
 
     data = data.reset_index(drop=True)
+    data = data.iloc[from_index:to_index]
 
     # Retrieve existing publication numbers from the database
     cursor = conn.cursor()
@@ -308,5 +321,5 @@ if __name__ == '__main__':
     with Pool(cpu_count()) as pool:
         pool.starmap(
             process_patent,
-            [(row, country_code, existing_publication_numbers) for index, row in data.iterrows() if from_index <= index < to_index]
+            [(index, data.shape[0], row, country_code, existing_publication_numbers) for index, row in data.iterrows()]
         )
