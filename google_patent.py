@@ -1,4 +1,5 @@
 import argparse
+import contextlib
 import sqlite3
 import sys
 import re
@@ -67,9 +68,15 @@ def get_citation_page_source(driver, publication_number):
     max_retries = 3
     retry_delay = 5  # seconds
 
+    is_404 = False
+
     for attempt in range(max_retries):
         try:
             driver.get(url)
+            with contextlib.suppress(TimeoutException):
+                is_404 = WebDriverWait(driver, 5).until(EC.title_contains("404"))
+                if is_404:
+                    return "", is_404
             WebDriverWait(driver, 5).until(
                 EC.visibility_of_element_located((By.CLASS_NAME, "footer"))
             )
@@ -81,7 +88,7 @@ def get_citation_page_source(driver, publication_number):
             else:
                 raise e
 
-    return driver.page_source
+    return driver.page_source, is_404
 
 
 def get_a_citation_data(html, publication_number, original_number, country_code):
@@ -220,7 +227,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--country_code", help="Country code of the patent")
     parser.add_argument("--from_index", help="From index to get the data", type=int, default=0)
-    parser.add_argument("--to_index", help="To index to get the data", type=int, default=10)
+    parser.add_argument("--to_index", help="To index to get the data", type=int, default=100000)
     args = parser.parse_args()
     country_code = args.country_code
     from_index = args.from_index
@@ -289,21 +296,26 @@ if __name__ == '__main__':
         elif country_code == 'US':
             original_number = row['patent_num']
             publication_number = f"US{row['patent_num']}"
+        if publication_number != "NL9300303":
+            continue
         # check if publication number exists in the database
         result = publication_number in existing_publication_numbers
         if result:
             print(f"{index}/{data.shape[0]}", f"{publication_number}, existed")
             continue
+        is_404 = False
         try:
-            html = get_citation_page_source(driver, publication_number)
+            html, is_404 = get_citation_page_source(driver, publication_number)
         except WebDriverException as e:
             print(e)
             print(f"Error in getting source for {publication_number}")
             continue
-
         except Exception as e:
             print(e)
             print(f"Error in getting source for {publication_number}")
+            continue
+        if is_404:
+            print(f"{index}/{data.shape[0]}", f"{publication_number}, 404")
             continue
         try:
             patent_data, patent_citations, non_patent_citations, data_cited_by = get_a_citation_data(html, publication_number, original_number, country_code)
