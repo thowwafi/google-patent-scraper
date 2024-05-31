@@ -267,6 +267,8 @@ if __name__ == '__main__':
         data = data[data['patent_num'] != '']
 
     data = data.reset_index(drop=True)
+    data = data.iloc[from_index:to_index]
+
 
     cursor = conn.cursor()
     # Execute the SQL query
@@ -286,18 +288,12 @@ if __name__ == '__main__':
     driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=chrome_options)
 
     for index, row in data.iterrows():
-        if index < from_index:
-            continue
-        if index > to_index:
-            break
         if country_code == 'NL':
             original_number = row['appln_nr_original']
             publication_number = f"NL{int(row['appln_nr_original'])}"
         elif country_code == 'US':
             original_number = row['patent_num']
             publication_number = f"US{row['patent_num']}"
-        if publication_number != "NL9300303":
-            continue
         # check if publication number exists in the database
         result = publication_number in existing_publication_numbers
         if result:
