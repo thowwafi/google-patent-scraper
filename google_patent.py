@@ -279,6 +279,10 @@ if __name__ == '__main__':
     driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=chrome_options)
 
     for index, row in data.iterrows():
+        if index < from_index:
+            continue
+        if index > to_index:
+            break
         if country_code == 'NL':
             original_number = row['appln_nr_original']
             publication_number = f"NL{int(row['appln_nr_original'])}"
