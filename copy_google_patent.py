@@ -234,6 +234,14 @@ def process_patent(index, total_data, row, country_code, existing_publication_nu
         try:
             # Create a new SQLite connection and WebDriver instance within each worker process
             conn = sqlite3.connect('patent_data.db')
+            cursor = conn.cursor()
+            cursor.execute(f"SELECT publication_number FROM patent_datas WHERE publication_number = '{publication_number}'")
+            result = cursor.fetchone()
+            
+            if result:
+                print(f"{index}/{total_data} {publication_number} already exists in the database")
+                conn.close()
+                return
             chrome_options = Options()
             chrome_options.add_argument("--headless")
             chrome_options.add_argument("--disable-gpu")
