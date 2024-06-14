@@ -310,6 +310,9 @@ if __name__ == '__main__':
         data = data.drop_duplicates(subset=['patent_num'])
         data = data.dropna(subset=['patent_num'])
         data = data[data['patent_num'] != '']
+        data['patent_num'] = pd.to_numeric(data['patent_num'], errors='coerce')
+        data = data.dropna(subset=['patent_num'])
+        data['patent_num'] = data['patent_num'].astype(int)
 
     data = data.reset_index(drop=True)
     data = data.iloc[from_index:to_index]
