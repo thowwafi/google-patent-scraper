@@ -233,7 +233,7 @@ def process_patent(index, total_data, row, country_code, existing_publication_nu
 
         try:
             # Create a new SQLite connection and WebDriver instance within each worker process
-            conn = sqlite3.connect('patent_data.db')
+            conn = sqlite3.connect('patent_data_US.db')
             cursor = conn.cursor()
             cursor.execute(f"SELECT publication_number FROM patent_datas WHERE publication_number = '{publication_number}'")
             result = cursor.fetchone()
