@@ -296,9 +296,10 @@ def process_patent(index, total_data, row, country_code, existing_publication_nu
         while retries > 0:
             try:
                 # Create a new SQLite connection and WebDriver instance within each worker process
-                db_path = (
-                    "patent_data.db" if country_code == "NL" else "patent_data_US_460000.db"
-                )
+                if country_code == "US":
+                    db_path = f"patent_data_US_{from_index}_{to_index}.db"
+                else:
+                    db_path = "patent_data.db"
                 conn = sqlite3.connect(db_path, timeout=10)  # Increase timeout
                 cursor = conn.cursor()
                 cursor.execute(
@@ -397,7 +398,7 @@ if __name__ == "__main__":
 
     # Connect to the database and create tables
     if country_code == "US":
-        conn = sqlite3.connect(f"patent_data_US_460000.db")
+        conn = sqlite3.connect(f"patent_data_US_{from_index}_{to_index}.db")
     else:
         conn = sqlite3.connect("patent_data.db")
     create_tables(conn)
