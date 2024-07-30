@@ -1,5 +1,7 @@
+import argparse
 import sqlite3
 import pandas as pd
+import os
 
 def export_table_to_csv(conn, table_name, csv_file_name):
     # Read the table into a DataFrame
@@ -7,18 +9,30 @@ def export_table_to_csv(conn, table_name, csv_file_name):
     # Export the DataFrame to a CSV file
     df.to_csv(csv_file_name, index=False)
 
-def main():
+def main(from_index, to_index):
     # Connect to the SQLite database
-    database_file = 'patent_data.db'  # Replace with your actual database file
-    conn = sqlite3.connect(database_file)
+    database_file = f'patent_data_US_{from_index, to_index}.db'
+    # check if the database file exists
+    try:
+        conn = sqlite3.connect(database_file)
+    except sqlite3.OperationalError:
+        print(f"Database file {database_file} does not exist")
+        return
+    
+    # create output directory
+    output_dir = f'US_{from_index}_{to_index}'
+    try:
+        os.makedirs(output_dir)
+    except FileExistsError:
+        pass
     
     try:
         # List of tables and corresponding CSV file names
         tables = [
-            ('patent_datas', 'NL/patent_datas.csv'),
-            ('patent_citations', 'NL/patent_citations.csv'),
-            ('non_patent_citations', 'NL/non_patent_citations.csv'),
-            ('data_cited_by', 'NL/data_cited_by.csv')
+            ('patent_datas', f'{output_dir}/patent_datas.csv'),
+            ('patent_citations', f'{output_dir}/patent_citations.csv'),
+            ('non_patent_citations', f'{output_dir}/non_patent_citations.csv'),
+            ('data_cited_by', f'{output_dir}/data_cited_by.csv')
         ]
         
         # Export each table to CSV
@@ -31,4 +45,15 @@ def main():
         conn.close()
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--from_index", help="From index to get the data", type=int, default=130
+    )
+    parser.add_argument(
+        "--to_index", help="To index to get the data", type=int, default=140
+    )
+    args = parser.parse_args()
+    from_index = args.from_index
+    to_index = args.to_index
+
+    main(from_index, to_index)
