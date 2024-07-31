@@ -12,6 +12,7 @@ def export_table_to_csv(conn, table_name, csv_file_name):
 def main(from_index, to_index):
     # Connect to the SQLite database
     database_file = f'patent_data_US_{from_index}_{to_index}.db'
+    print("database_file:", database_file)
     # check if the database file exists
     if not os.path.exists(database_file):
         print(f"Database file {database_file} does not exist")
