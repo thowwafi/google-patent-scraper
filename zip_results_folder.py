@@ -26,3 +26,7 @@ if __name__ == "__main__":
         print(f"{folder_to_zip} has been zipped successfully into {zip_file_name}")
     else:
         print(f"The folder '{folder_to_zip}' does not exist")
+
+
+# example usage:
+# python zip_results_folder.py US_0_100 US_0_100.zip

@@ -27,6 +27,7 @@ def main(from_index, to_index):
     output_dir = f'US_{from_index}_{to_index}'
     try:
         os.makedirs(output_dir)
+        print("output_dir:", output_dir)
     except FileExistsError:
         pass
     
@@ -61,3 +62,7 @@ if __name__ == '__main__':
     to_index = args.to_index
 
     main(from_index, to_index)
+
+
+# example usage:
+# python convert_sql_to_csv.py --from_index 0 --to_index 100
