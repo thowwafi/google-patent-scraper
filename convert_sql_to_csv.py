@@ -13,6 +13,9 @@ def main(from_index, to_index):
     # Connect to the SQLite database
     database_file = f'patent_data_US_{from_index}_{to_index}.db'
     # check if the database file exists
+    if not os.path.exists(database_file):
+        print(f"Database file {database_file} does not exist")
+        return
     try:
         conn = sqlite3.connect(database_file)
     except sqlite3.OperationalError:
