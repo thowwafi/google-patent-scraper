@@ -2,6 +2,8 @@ import argparse
 import sqlite3
 import pandas as pd
 import os
+from zip_results_folder import zip_folder
+
 
 def export_table_to_csv(conn, table_name, csv_file_name):
     # Read the table into a DataFrame
@@ -62,6 +64,7 @@ if __name__ == '__main__':
     to_index = args.to_index
 
     main(from_index, to_index)
+    zip_folder(f'US_{from_index}_{to_index}', f'US_{from_index}_{to_index}.zip')
 
 
 # example usage:
