@@ -1,43 +1,27 @@
-from convert_sql_to_csv import main
+from convert_sql_to_csv import main as convert_sql_to_csv
 from zip_results_folder import zip_folder
+import os
+from pprint import pprint
 
 
-index_list = [
-    # (610000, 620000),
-    # (620000, 630000),
-    # (630000, 640000),
-    # (640000, 650000),
-    # (650000, 660000),
-    # (660000, 670000),
-    # (670000, 680000),
-    # (680000, 690000),
-    (1000000, 1010000),
-    (1010000, 1020000),
-    (1020000, 1030000),
-    (1030000, 1040000),
-    (1040000, 1050000),
-    (1050000, 1060000),
-    (1060000, 1070000),
-    (1070000, 1080000),
-    (1080000, 1090000),
-    (1090000, 1100000),
-    (1100000, 1110000),
-    (1110000, 1120000),
-    (1120000, 1130000),
-    (1130000, 1140000),
-    (1140000, 1150000),
-    (1150000, 1160000),
-    (1160000, 1170000),
-    (1170000, 1180000),
-    (1180000, 1190000),
-    (1190000, 1200000),
-    (1200000, 1210000),
-    (1210000, 1220000),
-    (1220000, 1230000),
-    (1230000, 1240000),
-]
+index_list = []
+for i in range(121, 236):
+    index_list.append((i * 10000, (i + 1) * 10000))
+
+pprint(index_list)
 
 for index in index_list:
-    main(index[0], index[1])
-    zip_folder(f'US_{index[0]}_{index[1]}', f'US_{index[0]}_{index[1]}.zip')
+    # check if the database file exists
+    database_file = f"patent_data_US_{index[0]}_{index[1]}.db"
+    if not os.path.exists(database_file):
+        print(f"Database file {database_file} does not exist")
+        continue
+    # check if the output directory exists and zip file exists
+    output_dir = f"US_{index[0]}_{index[1]}"
+    zip_file = f"US_{index[0]}_{index[1]}.zip"
+    if os.path.exists(output_dir) and os.path.exists(zip_file):
+        print(f"{output_dir} and {zip_file} already exist")
+        continue
+    convert_sql_to_csv(index[0], index[1])
+    zip_folder(f"US_{index[0]}_{index[1]}", f"US_{index[0]}_{index[1]}.zip")
     print(f"US_{index[0]}_{index[1]}.zip has been created successfully")
