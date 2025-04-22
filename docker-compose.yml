@@ -1,0 +1,32 @@
+services:
+  # Standalone Chrome service with ARM64 support
+  chrome:
+    image: seleniarm/standalone-chromium:latest
+    container_name: chrome
+    shm_size: 2g
+    ports:
+      - "4444:4444"
+      - "7900:7900"
+    environment:
+      - SE_NODE_MAX_SESSIONS=5
+      - SE_NODE_OVERRIDE_MAX_SESSIONS=true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4444/wd/hub/status"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+    restart: always
+
+  # Patent scraper application
+  patent-scraper:
+    build: .
+    container_name: patent-scraper
+    volumes:
+      - ./:/app
+      - ./patent_data.db:/app/patent_data.db
+      - ./source:/app/source
+    depends_on:
+      - chrome
+    environment:
+      - SELENIUM_REMOTE_URL=http://chrome:4444/wd/hub
+    restart: on-failure
