@@ -17,10 +17,8 @@ services:
       retries: 3
     restart: always
 
-  # Patent scraper application
-  patent-scraper:
+  patent-scraper-1:
     build: .
-    container_name: patent-scraper
     volumes:
       - ./:/app
       - ./patent_data.db:/app/patent_data.db
@@ -29,4 +27,34 @@ services:
       - chrome
     environment:
       - SELENIUM_REMOTE_URL=http://chrome:4444/wd/hub
+      - WORKER_ID=0
+      - TOTAL_WORKERS=3
+    restart: on-failure
+
+  patent-scraper-2:
+    build: .
+    volumes:
+      - ./:/app
+      - ./patent_data.db:/app/patent_data.db
+      - ./source:/app/source
+    depends_on:
+      - chrome
+    environment:
+      - SELENIUM_REMOTE_URL=http://chrome:4444/wd/hub
+      - WORKER_ID=1
+      - TOTAL_WORKERS=3
+    restart: on-failure
+
+  patent-scraper-3:
+    build: .
+    volumes:
+      - ./:/app
+      - ./patent_data.db:/app/patent_data.db
+      - ./source:/app/source
+    depends_on:
+      - chrome
+    environment:
+      - SELENIUM_REMOTE_URL=http://chrome:4444/wd/hub
+      - WORKER_ID=2
+      - TOTAL_WORKERS=3
     restart: on-failure
