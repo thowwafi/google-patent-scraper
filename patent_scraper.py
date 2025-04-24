@@ -333,9 +333,10 @@ if __name__ == "__main__":
     # Get worker information from environment
     worker_id = int(os.environ.get("WORKER_ID", 0))
     total_workers = int(os.environ.get("TOTAL_WORKERS", 1))
+    batch_number = int(os.environ.get("BATCH_NUMBER", 1))
     
     # Load data
-    path = os.path.abspath("source/data_sic_36_NA_copy.csv")
+    path = os.path.abspath(f"source/split_files/data_sic_36_NA_part_{batch_number}.csv")
     data = pd.read_csv(path, sep=",")
     
     # Partition the data for this worker

@@ -29,6 +29,7 @@ services:
       - SELENIUM_REMOTE_URL=http://chrome:4444/wd/hub
       - WORKER_ID=0
       - TOTAL_WORKERS=3
+      - BATCH_NUMBER=${BATCH_NUMBER:-1}
     restart: on-failure
 
   patent-scraper-2:
@@ -43,6 +44,7 @@ services:
       - SELENIUM_REMOTE_URL=http://chrome:4444/wd/hub
       - WORKER_ID=1
       - TOTAL_WORKERS=3
+      - BATCH_NUMBER=${BATCH_NUMBER:-1}
     restart: on-failure
 
   patent-scraper-3:
@@ -57,4 +59,5 @@ services:
       - SELENIUM_REMOTE_URL=http://chrome:4444/wd/hub
       - WORKER_ID=2
       - TOTAL_WORKERS=3
+      - BATCH_NUMBER=${BATCH_NUMBER:-1}
     restart: on-failure
