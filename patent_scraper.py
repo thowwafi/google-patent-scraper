@@ -49,7 +49,7 @@ def get_citation_page_source(driver, publication_number):
             )
             break
         except WebDriverException as e:
-            print(f"Attempt {attempt + 1} failed with error: {e}")
+            logging.warning(f"Attempt {attempt + 1} failed with error: {e}")
             if attempt < max_retries - 1:
                 time.sleep(retry_delay)
             else:
@@ -203,7 +203,7 @@ def get_a_citation_data(html, publication_number, original_number, country_code)
             if match:
                 total_claims = match[1]
             else:
-                print("No digit number found in the text")
+                logging.warning("No digit number found in the text")
 
     patent_data = {
         "publication_number": publication_number,
@@ -287,14 +287,14 @@ def process_patent_with_retry(row_data, max_attempts=3):
             (publication_number,),
         )
         if cursor.fetchone():
-            print(f"{publication_number} was added by another process")
+            logging.info(f"{publication_number} was added by another process")
             conn.close()
             return True
 
         # Scrape the patent data
         html, is_404 = get_citation_page_source(driver, publication_number)
         if is_404:
-            print(f"404 error for {publication_number}, skipping...")
+            logging.warning(f"404 error for {publication_number}, skipping...")
             conn.close()
             return False
 
@@ -310,14 +310,14 @@ def process_patent_with_retry(row_data, max_attempts=3):
         for citation in data_cited_by:
             insert_to_data_cited_by(conn, citation)
 
-        print(
+        logging.info(
             f"{index}/{total_data} {publication_number} processed successfully"
         )
-        
+
         # try:
         #     test = ""
         # except Exception as e:
-        #     print(
+        #     logging.error(
         #         f"Error processing {publication_number} (attempt {attempt}/{max_attempts}): {str(e)}"
         #     )
         #     if "conn" in locals() and conn:
@@ -334,21 +334,23 @@ if __name__ == "__main__":
     worker_id = int(os.environ.get("WORKER_ID", 0))
     total_workers = int(os.environ.get("TOTAL_WORKERS", 1))
     batch_number = int(os.environ.get("BATCH_NUMBER", 1))
-    
+
     # Load data
     path = os.path.abspath(f"source/split_files/data_sic_36_NA_part_{batch_number}.csv")
     data = pd.read_csv(path, sep=",")
-    
+
     # Partition the data for this worker
     worker_data = data[data.index % total_workers == worker_id]
-    
-    print(f"Worker {worker_id}/{total_workers} processing {len(worker_data)} patents out of {len(data)} total")
-    
+
+    logging.info(
+        f"Worker {worker_id}/{total_workers} processing {len(worker_data)} patents out of {len(data)} total"
+    )
+
     # Process only this worker's partition
     total_data = len(worker_data)
 
     # Setup database
-    db_path = "patent_data.db"
+    db_path = f"patent_data.db"
     conn = sqlite3.connect(db_path)
     create_tables(conn)
 
@@ -368,7 +370,7 @@ if __name__ == "__main__":
 
     # Connect to remote Selenium Grid
     selenium_url = os.environ.get("SELENIUM_REMOTE_URL", "http://chrome:4444/wd/hub")
-    print(f"Connecting to Selenium at: {selenium_url}")
+    logging.info(f"Connecting to Selenium at: {selenium_url}")
 
     # Wait for Chrome service to be ready
     max_retries = 10
@@ -378,15 +380,17 @@ if __name__ == "__main__":
             driver = webdriver.Remote(
                 command_executor=selenium_url, options=chrome_options
             )
-            print("Successfully connected to Chrome service")
+            logging.info("Successfully connected to Chrome service")
             break
         except Exception as e:
             retry_count += 1
-            print(
+            logging.warning(
                 f"Attempt {retry_count}/{max_retries} to connect to Chrome service failed: {str(e)}"
             )
             if retry_count >= max_retries:
-                print("Failed to connect to Chrome service after maximum retries")
+                logging.error(
+                    "Failed to connect to Chrome service after maximum retries"
+                )
                 exit(1)
             time.sleep(5)
 
@@ -404,9 +408,11 @@ if __name__ == "__main__":
 
         # Random delay to avoid being blocked
         delay = 2 + (index % 3)
-        print(f"Waiting {delay} seconds before next patent...")
+        logging.info(f"Waiting {delay} seconds before next patent...")
         time.sleep(delay)
 
     # Clean up
     driver.quit()
-    print(f"Scraping completed! Success: {success_count}, Failures: {failure_count}")
+    logging.info(
+        f"Scraping completed! Success: {success_count}, Failures: {failure_count}"
+    )
