@@ -284,19 +284,28 @@ def process_patent_with_retry(row_data, max_attempts=3):
             # Double-check to avoid race conditions
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT publication_number FROM patent_datas WHERE publication_number = ?",
+                "SELECT publication_number, status FROM patent_datas WHERE publication_number = ?",
                 (publication_number,),
             )
-            if cursor.fetchone():
-                logging.info(f"{publication_number} was added by another process")
+            result = cursor.fetchone()  
+            if result:
+                publication_number, status = result
+                logging.info(f"{publication_number} was existing, status: {status}")
                 conn.close()
-                return True
+                return True, True
 
             # Scrape the patent data
             html, is_404 = get_citation_page_source(driver, publication_number)
             if is_404:
                 logging.warning(f"404 error for {publication_number}, skipping...")
                 conn.close()
+                if attempt == max_attempts:
+                    patent_data = {
+                        "publication_number": publication_number,
+                        "original_number": original_number,
+                        "status": 404,
+                    }
+                    insert_to_patent_datas(conn, patent_data)
                 raise Exception(
                     f"404 error for {publication_number}, skipping..."
                 )
@@ -326,7 +335,7 @@ def process_patent_with_retry(row_data, max_attempts=3):
                 time.sleep(5)  # Wait before retry
             continue
 
-    return False
+    return False, False
 
 
 if __name__ == "__main__":
@@ -401,7 +410,11 @@ if __name__ == "__main__":
     for index, row in worker_data.iterrows():
         row_data = row.to_dict()
 
-        if process_patent_with_retry(row_data):
+        success, exist = process_patent_with_retry(row_data)
+        if exist:
+            time.sleep(1)
+            continue
+        if success:
             success_count += 1
         else:
             failure_count += 1
