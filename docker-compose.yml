@@ -21,7 +21,7 @@ services:
     build: .
     volumes:
       - ./:/app
-      # - ./patent_data.db:/app/patent_data.db
+      - ./patent_data.db:/app/patent_data.db
       - ./source:/app/source
     depends_on:
       - chrome
@@ -36,7 +36,7 @@ services:
     build: .
     volumes:
       - ./:/app
-      # - ./patent_data.db:/app/patent_data.db
+      - ./patent_data.db:/app/patent_data.db
       - ./source:/app/source
     depends_on:
       - chrome
@@ -51,7 +51,7 @@ services:
     build: .
     volumes:
       - ./:/app
-      # - ./patent_data.db:/app/patent_data.db
+      - ./patent_data.db:/app/patent_data.db
       - ./source:/app/source
     depends_on:
       - chrome
@@ -66,7 +66,7 @@ services:
     build: .
     volumes:
       - ./:/app
-      # - ./patent_data.db:/app/patent_data.db
+      - ./patent_data.db:/app/patent_data.db
       - ./source:/app/source
     depends_on:
       - chrome
