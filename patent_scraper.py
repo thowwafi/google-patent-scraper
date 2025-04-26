@@ -277,54 +277,54 @@ def process_patent_with_retry(row_data, max_attempts=3):
     original_number = row_data["patent_num"]
 
     for attempt in range(1, max_attempts + 1):
-        # Connect to database
-        conn = sqlite3.connect(db_path, timeout=30)
+        try:
+            # Connect to database
+            conn = sqlite3.connect(db_path, timeout=30)
 
-        # Double-check to avoid race conditions
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT publication_number FROM patent_datas WHERE publication_number = ?",
-            (publication_number,),
-        )
-        if cursor.fetchone():
-            logging.info(f"{publication_number} was added by another process")
-            conn.close()
-            return True
+            # Double-check to avoid race conditions
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT publication_number FROM patent_datas WHERE publication_number = ?",
+                (publication_number,),
+            )
+            if cursor.fetchone():
+                logging.info(f"{publication_number} was added by another process")
+                conn.close()
+                return True
 
-        # Scrape the patent data
-        html, is_404 = get_citation_page_source(driver, publication_number)
-        if is_404:
-            logging.warning(f"404 error for {publication_number}, skipping...")
-            conn.close()
-            return False
+            # Scrape the patent data
+            html, is_404 = get_citation_page_source(driver, publication_number)
+            if is_404:
+                logging.warning(f"404 error for {publication_number}, skipping...")
+                conn.close()
+                raise Exception(
+                    f"404 error for {publication_number}, skipping..."
+                )
 
-        patent_data, patent_citations, non_patent_citations, data_cited_by = (
-            get_a_citation_data(html, publication_number, original_number, "US")
-        )
+            patent_data, patent_citations, non_patent_citations, data_cited_by = (
+                get_a_citation_data(html, publication_number, original_number, "US")
+            )
 
-        insert_to_patent_datas(conn, patent_data)
-        for citation in patent_citations:
-            insert_to_patent_citations(conn, citation)
-        for citation in non_patent_citations:
-            insert_to_non_patent_citations(conn, citation)
-        for citation in data_cited_by:
-            insert_to_data_cited_by(conn, citation)
+            insert_to_patent_datas(conn, patent_data)
+            for citation in patent_citations:
+                insert_to_patent_citations(conn, citation)
+            for citation in non_patent_citations:
+                insert_to_non_patent_citations(conn, citation)
+            for citation in data_cited_by:
+                insert_to_data_cited_by(conn, citation)
 
-        logging.info(
-            f"{index}/{total_data} {publication_number} processed successfully"
-        )
-
-        # try:
-        #     test = ""
-        # except Exception as e:
-        #     logging.error(
-        #         f"Error processing {publication_number} (attempt {attempt}/{max_attempts}): {str(e)}"
-        #     )
-        #     if "conn" in locals() and conn:
-        #         conn.close()
-        #     if attempt < max_attempts:
-        #         time.sleep(5)  # Wait before retry
-        #     continue
+            logging.info(
+                f"{index}/{total_data} {publication_number} processed successfully"
+            )
+        except Exception as e:
+            logging.error(
+                f"Error processing {publication_number} (attempt {attempt}/{max_attempts}): {str(e)}"
+            )
+            if "conn" in locals() and conn:
+                conn.close()
+            if attempt < max_attempts:
+                time.sleep(5)  # Wait before retry
+            continue
 
     return False
 
