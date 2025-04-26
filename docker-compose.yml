@@ -28,7 +28,7 @@ services:
     environment:
       - SELENIUM_REMOTE_URL=http://chrome:4444/wd/hub
       - WORKER_ID=0
-      - TOTAL_WORKERS=3
+      - TOTAL_WORKERS=4
       - BATCH_NUMBER=${BATCH_NUMBER:-1}
     restart: on-failure
 
@@ -43,7 +43,7 @@ services:
     environment:
       - SELENIUM_REMOTE_URL=http://chrome:4444/wd/hub
       - WORKER_ID=1
-      - TOTAL_WORKERS=3
+      - TOTAL_WORKERS=4
       - BATCH_NUMBER=${BATCH_NUMBER:-1}
     restart: on-failure
 
@@ -58,6 +58,21 @@ services:
     environment:
       - SELENIUM_REMOTE_URL=http://chrome:4444/wd/hub
       - WORKER_ID=2
-      - TOTAL_WORKERS=3
+      - TOTAL_WORKERS=4
+      - BATCH_NUMBER=${BATCH_NUMBER:-1}
+    restart: on-failure
+
+  patent-scraper-4:
+    build: .
+    volumes:
+      - ./:/app
+      # - ./patent_data.db:/app/patent_data.db
+      - ./source:/app/source
+    depends_on:
+      - chrome
+    environment:
+      - SELENIUM_REMOTE_URL=http://chrome:4444/wd/hub
+      - WORKER_ID=3
+      - TOTAL_WORKERS=4
       - BATCH_NUMBER=${BATCH_NUMBER:-1}
     restart: on-failure
