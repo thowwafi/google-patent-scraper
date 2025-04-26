@@ -287,10 +287,12 @@ def process_patent_with_retry(row_data, index, total_data, max_attempts=3):
                 "SELECT publication_number, status FROM patent_datas WHERE publication_number = ?",
                 (publication_number,),
             )
-            result = cursor.fetchone()  
+            result = cursor.fetchone()
             if result:
                 publication_number, status = result
-                logging.info(f"{publication_number} was existing, status: {status}")
+                logging.info(
+                    f"{index}/{total_data} - {publication_number} already exists, status: {status}"
+                )
                 conn.close()
                 return True, True
 
@@ -303,12 +305,10 @@ def process_patent_with_retry(row_data, index, total_data, max_attempts=3):
                     patent_data = {
                         "publication_number": publication_number,
                         "original_number": original_number,
-                        "status": 404,
+                        "status": "404",
                     }
                     insert_to_patent_datas(conn, patent_data)
-                raise Exception(
-                    f"404 error for {publication_number}, skipping..."
-                )
+                raise Exception(f"404 error for {publication_number}, skipping...")
 
             patent_data, patent_citations, non_patent_citations, data_cited_by = (
                 get_a_citation_data(html, publication_number, original_number, "US")
