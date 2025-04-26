@@ -300,7 +300,6 @@ def process_patent_with_retry(row_data, index, total_data, max_attempts=3):
             html, is_404 = get_citation_page_source(driver, publication_number)
             if is_404:
                 logging.warning(f"404 error for {publication_number}, skipping...")
-                conn.close()
                 if attempt == max_attempts:
                     patent_data = {
                         "publication_number": publication_number,
@@ -308,6 +307,7 @@ def process_patent_with_retry(row_data, index, total_data, max_attempts=3):
                         "status": "404",
                     }
                     insert_to_patent_datas(conn, patent_data)
+                conn.close()
                 raise Exception(f"404 error for {publication_number}, skipping...")
 
             patent_data, patent_citations, non_patent_citations, data_cited_by = (
