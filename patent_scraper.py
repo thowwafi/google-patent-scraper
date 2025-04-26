@@ -304,6 +304,13 @@ def process_patent_with_retry(row_data, index, total_data, max_attempts=3):
                     patent_data = {
                         "publication_number": publication_number,
                         "original_number": original_number,
+                        "patent_title": "",
+                        "abstract": "",
+                        "description": "",
+                        "claims": "",
+                        "total_number_of_claims": 0,
+                        "total_cited_by": 0,
+                        "total_patent_citations": 0,
                         "status": "404",
                     }
                     insert_to_patent_datas(conn, patent_data)
