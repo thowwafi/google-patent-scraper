@@ -272,7 +272,7 @@ def get_a_citation_data(html, publication_number, original_number, country_code)
 
 
 # Add more robustness with retries for each patent
-def process_patent_with_retry(row_data, max_attempts=3):
+def process_patent_with_retry(row_data, index, total_data, max_attempts=3):
     publication_number = row_data["publication_number"]
     original_number = row_data["patent_num"]
 
@@ -410,7 +410,7 @@ if __name__ == "__main__":
     for index, row in worker_data.iterrows():
         row_data = row.to_dict()
 
-        success, exist = process_patent_with_retry(row_data)
+        success, exist = process_patent_with_retry(row_data, index, total_data)
         if exist:
             time.sleep(1)
             continue
