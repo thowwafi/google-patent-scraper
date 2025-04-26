@@ -17,12 +17,23 @@ python google_patent.py --country_code US --from_index 5 --to_index 10
 # Update 25 April 2025
 
 # For debugging purpose
-- docker compose build
-- docker compose run --rm patent-scraper-1 /bin/bash
-- python -m pdb patent_scraper.py
-
+```
+docker compose build
+docker compose run --rm patent-scraper-1 /bin/bash
+python -m pdb patent_scraper.py
+```
 
 # Production script
-- BATCH_NUMBER=1 docker compose up --build
-- BATCH_NUMBER=2 docker compose up --build
-- BATCH_NUMBER=3 docker compose up --build
+```
+BATCH_NUMBER=1 docker compose up --build
+BATCH_NUMBER=2 docker compose up --build
+BATCH_NUMBER=3 docker compose up --build
+...
+```
+
+# Check logs
+```
+for container in $(docker ps -q --filter name=google-patent-scraper-patent-scraper); do
+  docker logs -f $container --tail=100 &
+done
+```

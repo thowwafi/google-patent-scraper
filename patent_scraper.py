@@ -315,7 +315,7 @@ def process_patent_with_retry(row_data, index, total_data, max_attempts=3):
                     }
                     insert_to_patent_datas(conn, patent_data)
                 conn.close()
-                raise Exception(f"404 error for {publication_number}, skipping...")
+                raise Exception(f"{index}/{total_data} - 404 error for {publication_number}, skipping...")
 
             patent_data, patent_citations, non_patent_citations, data_cited_by = (
                 get_a_citation_data(html, publication_number, original_number, "US")
