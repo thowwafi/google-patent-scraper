@@ -419,7 +419,6 @@ if __name__ == "__main__":
 
         success, exist = process_patent_with_retry(row_data, index, total_data)
         if exist:
-            time.sleep(1)
             continue
         if success:
             success_count += 1
