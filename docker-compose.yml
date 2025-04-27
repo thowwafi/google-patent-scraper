@@ -76,3 +76,13 @@ services:
       - TOTAL_WORKERS=4
       - BATCH_NUMBER=${BATCH_NUMBER:-1}
     restart: on-failure
+
+  sql-to-zip:
+    build: .
+    volumes:
+      - ./:/app
+      - ./patent_data.db:/app/patent_data.db
+      - ./output:/app/output
+    command: python sql_to_zip_new.py
+    profiles:
+      - export

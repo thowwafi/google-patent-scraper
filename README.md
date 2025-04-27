@@ -37,3 +37,8 @@ for container in $(docker ps -q --filter name=google-patent-scraper-patent-scrap
   docker logs -f $container --tail=100 &
 done
 ```
+
+# Export data from sql to zip
+```
+docker compose --profile export up sql-to-zip
+```
