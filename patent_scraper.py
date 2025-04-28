@@ -362,19 +362,31 @@ if __name__ == "__main__":
         f"Worker {worker_id}/{total_workers} processing {len(worker_data)} patents out of {len(data)} total"
     )
 
-    # Process only this worker's partition
-    total_data = len(worker_data)
-
     # Setup database
     db_path = f"patent_data.db"
     conn = sqlite3.connect(db_path)
     create_tables(conn)
 
-    # Get existing publication numbers
+    # Get existing publication numbers and ones with status 404
     cursor = conn.cursor()
     cursor.execute("SELECT publication_number FROM patent_datas")
     existing_publication_numbers = set([row[0] for row in cursor.fetchall()])
-    conn.close()
+
+    # Get publication numbers with status 404
+    cursor.execute("SELECT publication_number FROM patent_datas WHERE status = '404'")
+    status_404_publication_numbers = set([row[0] for row in cursor.fetchall()])
+
+    # Numbers to exclude are the existing ones EXCEPT those with status 404
+    # (we want to retry the 404s)
+    numbers_to_exclude = existing_publication_numbers - status_404_publication_numbers
+
+    worker_data = worker_data[
+        ~worker_data["publication_number"].isin(numbers_to_exclude)
+    ]
+    logging.info(
+        f"Worker {worker_id}/{total_workers} processing {len(worker_data)} patents after filtering"
+    )
+    total_data = len(worker_data)
 
     # Configure Chrome options
     chrome_options = Options()

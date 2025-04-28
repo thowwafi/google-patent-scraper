@@ -19,7 +19,7 @@ python google_patent.py --country_code US --from_index 5 --to_index 10
 # For debugging purpose
 ```
 docker compose build
-docker compose run --rm patent-scraper-1 /bin/bash
+BATCH_NUMBER=1 docker compose run --rm patent-scraper-1 /bin/bash
 python -m pdb patent_scraper.py
 ```
 
