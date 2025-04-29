@@ -18,11 +18,11 @@ if not os.path.exists(database_file):
     logger.error(f"Database file {database_file} does not exist")
 
 # Check if the output directory exists and zip file exists
-output_dir = f"output_dir"
-zip_file = f"US_patent_data.zip"
+output_dir = f"output"
+zip_file = f"output/US_patent_data.zip"
 if os.path.exists(output_dir) and os.path.exists(zip_file):
     logger.info(f"{output_dir} and {zip_file} already exist")
 
 convert_sql_to_csv()
-zip_folder(f"US_patent_data", f"US_patent_data.zip")
+zip_folder(f"output/US_patent_data", f"output/US_patent_data.zip")
 logger.info(f"US_patent_data.zip has been created successfully")

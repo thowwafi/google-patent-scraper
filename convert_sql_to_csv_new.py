@@ -37,7 +37,7 @@ def main():
         return
 
     # create output directory
-    output_dir = f"US_patent_data"
+    output_dir = f"output/US_patent_data"
     try:
         os.makedirs(output_dir)
         logger.info(f"output_dir: {output_dir}")
