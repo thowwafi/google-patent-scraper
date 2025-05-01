@@ -55,7 +55,16 @@ def main():
 
         # Export each table to CSV
         for table_name, csv_file_name in tables:
-            export_table_to_csv(conn, table_name, csv_file_name)
+            try:
+
+                export_table_to_csv(conn, table_name, csv_file_name)
+            except sqlite3.OperationalError as e:
+                logger.error(f"Error exporting {table_name}: {e}")
+                continue
+            except Exception as e:
+                logger.error(f"An error occurred while exporting {table_name}: {e}")
+                continue
+            # Log the successful export
             logger.info(f"Exported {table_name} to {csv_file_name}")
 
     except Exception as e:
