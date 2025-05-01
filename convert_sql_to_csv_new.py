@@ -47,9 +47,9 @@ def main():
     try:
         # List of tables and corresponding CSV file names
         tables = [
-            ("patent_datas", f"{output_dir}/patent_datas.csv"),
-            ("patent_citations", f"{output_dir}/patent_citations.csv"),
-            ("non_patent_citations", f"{output_dir}/non_patent_citations.csv"),
+            # ("patent_datas", f"{output_dir}/patent_datas.csv"),
+            # ("patent_citations", f"{output_dir}/patent_citations.csv"),
+            # ("non_patent_citations", f"{output_dir}/non_patent_citations.csv"),
             ("data_cited_by", f"{output_dir}/data_cited_by.csv"),
         ]
 
