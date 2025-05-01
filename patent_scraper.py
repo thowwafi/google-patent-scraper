@@ -41,7 +41,7 @@ def get_citation_page_source(driver, publication_number):
         try:
             driver.get(url)
             with contextlib.suppress(TimeoutException):
-                is_404 = WebDriverWait(driver, 5).until(EC.title_contains("404"))
+                is_404 = WebDriverWait(driver, 5).until(EC.title_contains("Error 404"))
                 if is_404:
                     return "", is_404
             WebDriverWait(driver, 5).until(
