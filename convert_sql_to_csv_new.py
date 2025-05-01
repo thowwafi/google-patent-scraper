@@ -58,6 +58,9 @@ def main():
             export_table_to_csv(conn, table_name, csv_file_name)
             logger.info(f"Exported {table_name} to {csv_file_name}")
 
+    except Exception as e:
+        logger.error(f"An error occurred while exporting tables: {e}")
+        return
     finally:
         # Close the database connection
         conn.close()
