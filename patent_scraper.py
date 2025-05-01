@@ -365,13 +365,6 @@ if __name__ == "__main__":
     path = os.path.abspath(f"source/data_sic_36_NA.csv")
     data = pd.read_csv(path, sep=",")
 
-    # Partition the data for this worker
-    worker_data = data[data.index % total_workers == worker_id]
-
-    logging.info(
-        f"Worker {worker_id}/{total_workers} processing {len(worker_data)} patents out of {len(data)} total"
-    )
-
     # Setup database
     db_path = f"patent_data.db"
     conn = sqlite3.connect(db_path)
@@ -390,14 +383,25 @@ if __name__ == "__main__":
     # (we want to retry the 404s)
     numbers_to_exclude = existing_publication_numbers - status_404_publication_numbers
 
-    worker_data = worker_data[
-        ~worker_data["publication_number"].isin(numbers_to_exclude)
-    ]
+    # Filter the data first - only keep records that need processing
+    filtered_data = data[~data["publication_number"].isin(numbers_to_exclude)]
+    filtered_data = filtered_data.reset_index(drop=True)
+
+    # Log the total filtered data size
     logging.info(
-        f"Worker {worker_id}/{total_workers} processing {len(worker_data)} patents after filtering"
+        f"Total patents to process after filtering: {len(filtered_data)} out of {len(data)} total"
     )
+
+    # Then partition the filtered data for this worker
+    worker_data = filtered_data[filtered_data.index % total_workers == worker_id]
     total_data = len(worker_data)
-    worker_data = worker_data.reset_index(drop=True)
+
+    logging.info(
+        f"Worker {worker_id}/{total_workers} processing {len(worker_data)} patents"
+    )
+
+    # Close the database connection as we've finished querying
+    conn.close()
 
     # Configure Chrome options
     chrome_options = Options()
