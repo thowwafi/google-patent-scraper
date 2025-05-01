@@ -290,17 +290,20 @@ def process_patent_with_retry(row_data, index, total_data, max_attempts=3):
             result = cursor.fetchone()
             if result:
                 publication_number, status = result
-                logging.info(
-                    f"{index}/{total_data} - {publication_number} already exists, status: {status}"
-                )
-                conn.close()
-                return True, True
+                if status == "404":
+                    logging.info(
+                        f"{index}/{total_data} - {publication_number} already exists with status 404, retrying..."
+                    )
+                else:
+                    # Skip if already processed
+                    conn.close()
+                    return True, True
 
             # Scrape the patent data
             html, is_404 = get_citation_page_source(driver, publication_number)
             if is_404:
-                logging.warning(f"404 error for {publication_number}, skipping...")
                 if attempt == max_attempts:
+                    logging.warning(f"404 error for {publication_number}, skipping...")
                     patent_data = {
                         "publication_number": publication_number,
                         "original_number": original_number,
@@ -313,9 +316,16 @@ def process_patent_with_retry(row_data, index, total_data, max_attempts=3):
                         "total_patent_citations": 0,
                         "status": "404",
                     }
-                    insert_to_patent_datas(conn, patent_data)
+                    try:
+                        insert_to_patent_datas(conn, patent_data)
+                    except sqlite3.IntegrityError:
+                        logging.info(
+                            f"{publication_number} already exists in the database, skipping..."
+                        )
                 conn.close()
-                raise Exception(f"{index}/{total_data} - 404 error for {publication_number}, skipping...")
+                raise Exception(
+                    f"{index}/{total_data} - 404 error for {publication_number}, skipping..."
+                )
 
             patent_data, patent_citations, non_patent_citations, data_cited_by = (
                 get_a_citation_data(html, publication_number, original_number, "US")
@@ -352,7 +362,7 @@ if __name__ == "__main__":
     batch_number = int(os.environ.get("BATCH_NUMBER", 1))
 
     # Load data
-    path = os.path.abspath(f"source/split_files/data_sic_36_NA_part_{batch_number}.csv")
+    path = os.path.abspath(f"source/data_sic_36_NA.csv")
     data = pd.read_csv(path, sep=",")
 
     # Partition the data for this worker
@@ -387,6 +397,7 @@ if __name__ == "__main__":
         f"Worker {worker_id}/{total_workers} processing {len(worker_data)} patents after filtering"
     )
     total_data = len(worker_data)
+    worker_data = worker_data.reset_index(drop=True)
 
     # Configure Chrome options
     chrome_options = Options()
